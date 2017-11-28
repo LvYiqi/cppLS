@@ -8,6 +8,7 @@
 
 #define MAX 10010
 #define MAXK 200
+#define MAXCNUM 10
 #define HASHNUM 131073
 #define HASHNUM2 10000000
 #define INF -99999999
@@ -38,6 +39,7 @@ int s1,s2,s3,s0,timetemp,best_time;
 //int countnum=0;
 
 int perturbnum[MAX];
+int candidatesolution[MAXCNUM][MAX],count[MAX],recode[MAX],bestcost[MAXCNUM];
 
 typedef struct pnt_heap{
     int p_weight;
@@ -272,7 +274,7 @@ void InitialSolution2()//初始化五十个团
 {
     int i,j,temp1,temp;
 	s1=time((time_t*)NULL);
-    printf("Initial\n");
+//    printf("Initial\n");
     for(i=0;i<N;i++){
         ans[i][0]=0;
         for(j=0;j<N;j++)
@@ -340,7 +342,7 @@ void InitialSolution2()//初始化五十个团
         bestcircle=circle;
         rewritebest();
     }
-    printf("%d %d\n",new_cost,best_cost);
+//    printf("%d %d\n",new_cost,best_cost);
 }
 
 int findBestMove(int &tempt)
@@ -514,6 +516,11 @@ void TabuSearch()
     best_temp=new_cost;
 //    for(i=0;i<HASHNUM;i++)
 //        newtabu[i]=0;
+    for(i=0;i<N;i++)
+        for(j=0;j<MAXK;j++){
+            tabu[i][j]=0;
+            tabuO[i][j]=0;
+        }
     for(i=0;i<MAXK;i++)
     {
         hashcluster[index[i]]=0;
@@ -528,7 +535,7 @@ void TabuSearch()
 //        perturbnum[find]++;
         if(find == -1)
         {
-            printf("...\n");
+//            printf("...\n");
 			return ;
         }
 /*/
@@ -711,9 +718,9 @@ void restart()
 {
     int i,j,temp1,temp;
 	s1=time((time_t*)NULL);
-    FILE *fp=fopen("in-sol.txt","r");
+//    FILE *fp=fopen("in-sol.txt","r");
 //    FILE *f=fopen("out.txt","w");
-    printf("restart\n");
+//    printf("restart\n");
     for(i=0;i<N;i++){
         ans[i][0]=0;
         for(j=0;j<N;j++)
@@ -722,14 +729,32 @@ void restart()
         }
     }
     K=0;
+    for(i=0;i<MAXK;i++)
+    {
+        count[i]=0;
+    }
     for(i=0;i<N;i++)
     {
-        fscanf(fp,"%d",&temp);
-        if(temp>=K) K=temp+1;
+        temp=recode[i];
+        count[temp]++;
 //        printf("%d ",temp);
         ans[temp][++ans[temp][0]]=i;
         address[i]=temp;
     }
+    j=0,temp=MAXK-1;
+    for(i=0;i<MAXK;i++)
+    {
+        if(count[i])
+        {
+            index[j++]=i;
+            backindex[i]=j-1;
+        }
+        else{
+            index[temp--]=i;
+            backindex[i]=temp+1;
+        }
+    }
+    K=j;
     pre_com_hash();
     for(i=0;i<N;i++)
         for(j=0;j<MAXK;j++){
@@ -739,10 +764,10 @@ void restart()
     for(i=0;i<=N;i++)
         for(j=0;j<K;j++)
         {
-            p[i][j]=0;
-            for(temp1=1;temp1<=ans[j][0];temp1++)
+            p[i][backindex[j]]=0;
+            for(temp1=1;temp1<=ans[backindex[j]][0];temp1++)
             {
-                p[i][j]+=weight[i][ans[j][temp1]];
+                p[i][j]+=weight[i][ans[backindex[j]][temp1]];
             }
         }
 //    printf("part3\n");
@@ -754,7 +779,7 @@ void restart()
         heap[i][0]->pnt_add=address[i];
         for(j=0;j<K;j++)
         {
-            p_insert(i,p[i][j],j);
+            p_insert(i,p[i][backindex[j]],backindex[j]);
         }
     }
 //    printf("part4\n");
@@ -766,11 +791,11 @@ void restart()
 //    }
     for(i=0;i<K;i++)
     {
-        for(j=1;j<ans[i][0];j++)
+        for(j=1;j<ans[backindex[i]][0];j++)
         {
-            for(temp1=j+1;temp1<=ans[i][0];temp1++)
+            for(temp1=j+1;temp1<=ans[backindex[i]][0];temp1++)
             {
-                new_cost+=weight[ans[i][j]][ans[i][temp1]];
+                new_cost+=weight[ans[backindex[i]][j]][ans[backindex[i]][temp1]];
             }
         }
     }
@@ -781,13 +806,13 @@ void restart()
         rewritebest();
 //        printf("%d\n",best_cost);
     }
-    printf("%d %d\n",new_cost,best_cost);
+//    printf("%d %d\n",new_cost,best_cost);
 //    printf("%d\n",N);
 }
 
 int main(/*int argc, char **argv*/)
 {
-    int i,j,k,tempcost=0,tabuornot,perturbornot;
+    int i,mini,mincost,j,k,tempcost=0,tabuornot,perturbornot,candnow,cand1,cand2;
     circle=0;
 //    randlst = new int[N];
 //    for (i = 0; i < argc; i++){
@@ -846,88 +871,73 @@ int main(/*int argc, char **argv*/)
 	}
 	finalmovenum=0;
 	timetemp=0;
+
+    for(i=0;i<MAXCNUM;i++)
+    {
+        InitialSolution2();
+        srand((unsigned)time(NULL));
+        TabuSearch();
+        bestcost[i]=best_cost;
+        best_cost=INF;
+        for(j=0;j<N;j++)
+            candidatesolution[i][j]=bestaddress[j];
+    }
         s2=time((time_t*)NULL);
 
     while((s2-s0)<MAXTIME)
     {
-//*自己初始化
-    InitialSolution2();
-    s3=time((time_t*)NULL);
-/*/
-//使用聚类的初始化
-	restart();
-//*/
-
-//	for(i=0;i<HASHNUM2;i++)
-//        clustertabu[i]=0;
-	while(circle<MAXCIRCLE)
-	{
-	srand((unsigned)time(NULL));
-//	    printf("Started\n");
-//	    if(circle==MAXCIRCLE/2) restart();
-//	    tabuornot=DescentSearch();
-//	    printf("DescentSearch Done\n");
-//	    if(tabuornot){
-            TabuSearch();
-            T1=new_cost;
-//            printf("TabuSearch Done\n");
-//	    printf("T:%d %d %d %d   ",K,best_temp,new_cost,best_cost);
-//	    }
-//	    if(circle%3==0)
-//        if(circle%10==0){
-//            perturbflag=1;
-//            Perturb();
-//        }
-        Perturb();
-//        if(K>=3&&(circle+1)%100==0) {
-//            lastc1=-1,lastc2=-1;
-//            backtobest();
-////            printf("Tabu2 start\n");
-//            TabuSearch2();
-////            printf("Tabu2 success\n");
-//            T2=new_cost;
-//        }
-//	    else
-//            printf("Tabu2 Success.\n");
-//	    printf("Perturb Done\n");
-//	    printf("P:%d %d %d\n",K,new_cost,best_cost);
-	    circle++;
-        s2=time((time_t*)NULL);
-        if(s2-s0>MAXTIME) break;
-        if(s2-s3>(BASETIME*restarttime[timetemp])) break;
-//        if(s2-s1>20&&s2-s1>MIN(25+best_time,5*best_time)) restart();
-//        printf("%d %d %d\t\t\t",best_cost,T1,T2);
-	}
-        timetemp++;
-        s2=time((time_t*)NULL);
-    }
-    int tempk=0;
-	for(i=0;i<N;i++){
-	    tempk=(tempk>=bestaddress[i])?tempk:bestaddress[i];
-	}
-	for(i=0;i<=MAXK;i++){
-        ans[i][0]=0;
-        index[i]=bestindex[i];
-	}
-	for(i=0;i<N;i++){
-	    ans[bestaddress[i]][++ans[bestaddress[i]][0]]=i;
-	}
-	s2=time((time_t*)NULL);
-
-    for(i=0;i<=tempk;i++)
-    {
-        for(j=1;j<ans[index[i]][0];j++)
+//选择待杂交的两个个体
+        cand1=rand()%MAXCNUM;
+        cand2=rand()%(MAXCNUM-1);
+        if(cand2==cand1) cand2=MAXCNUM-1;
+//随机段杂交
+        for(i=0;i<N;i++)
         {
-            for(k=j+1;k<=ans[index[i]][0];k++)
-                tempcost+=weight[ans[index[i]][j]][ans[index[i]][k]];
+            if(i<param_alpha*N||i>param_beta*N) candnow=cand1;
+            else candnow=cand2;
+            recode[i]=candidatesolution[candnow][i];
         }
+//新个体发育
+        restart();
+        srand((unsigned)time(NULL));
+        TabuSearch();
+        mini=0,mincost=bestcost[0];
+        printf("%d\n",best_cost);
+//找出最弱的一个个体取代
+        for(i=1;i<MAXCNUM;i++)
+        {
+            if(bestcost[i]<mincost)
+            {
+                mini=i;
+                mincost=bestcost[i];
+            }
+        }
+        if(mincost<=best_cost)
+        {
+            bestcost[mini]=best_cost;
+            for(j=0;j<N;j++)
+                candidatesolution[mini][j]=bestaddress[j];
+        }
+        best_cost=INF;
+
+        s2=time((time_t*)NULL);
     }
 
-	assert(tempcost==best_cost);
-	printf("^^^ %d %d %d\n",best_cost,bestcircle,best_time);
-    fprintf(outf,"%d %d %d\n",best_cost,bestcircle,best_time);
+        mini=0,mincost=bestcost[0];
+        for(i=1;i<MAXCNUM;i++)
+        {
+            if(bestcost[i]>mincost)
+            {
+                mini=i;
+                mincost=bestcost[i];
+            }
+        }
+        best_cost=bestcost[mini];
+
+	printf("^^^ %d %d\n",best_cost,best_time);
+    fprintf(outf,"%d %d\n",best_cost,best_time);
     for(i=0;i<N;i++){
-        fprintf(outf,"%d ",bestaddress[i]);
+        fprintf(outf,"%d ",candidatesolution[mini][i]);
     }
     printf("Tabu:%d\n",improvenum);
     printf("Time:%d\n",s2-s0);
