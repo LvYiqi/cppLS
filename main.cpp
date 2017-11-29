@@ -7,7 +7,7 @@
 //#include <windef.h>
 
 #define MAX 10010
-#define MAXK 200
+#define MAXK 100
 #define MAXCNUM 10
 #define HASHNUM 131073
 #define HASHNUM2 10000000
@@ -527,6 +527,7 @@ void TabuSearch()
         for(j=1;j<=ans[index[i]][0];j++)
             hashcluster[index[i]]=(hashcluster[index[i]]+hashZ[ans[index[i]][j]])%HASHNUM;
 //        newtabu[hashcluster[index[i]]]++;
+//printf("%d %d %d\n",i,index[i],hashcluster[index[i]]);
     }
 //    clustertabu[new_cost]++;
     while(non_improve<Tabucircle)
@@ -535,7 +536,7 @@ void TabuSearch()
 //        perturbnum[find]++;
         if(find == -1)
         {
-//            printf("...\n");
+            printf("...\n");
 			return ;
         }
 /*/
@@ -567,6 +568,7 @@ void TabuSearch()
         else {lastto=index[K];K++;}
         hashcluster[lastfrom]=(hashcluster[lastfrom]+HASHNUM-hashZ[find])%HASHNUM;
         hashcluster[lastto]=(hashcluster[lastto]+hashZ[find])%HASHNUM;
+        MakeMove(find,lastfrom,lastto);
         if(best_temp<new_cost){
             best_temp=new_cost;
             non_improve=0;
@@ -576,7 +578,6 @@ void TabuSearch()
             tabuO[find][lastto]=hashcluster[lastto];
 //        }
 //*/
-        MakeMove(find,lastfrom,lastto);
 //        printf("%d %d %d %d\n",find,backindex[lastfrom],backindex[lastto],K);
         pointmovenum[find]++;
         non_improve++;
@@ -594,6 +595,7 @@ void TabuSearch()
             improvenum++;
         }
     }
+//    printf("%d\n",best_cost);
     return ;
 }
 
@@ -721,13 +723,11 @@ void restart()
 //    FILE *fp=fopen("in-sol.txt","r");
 //    FILE *f=fopen("out.txt","w");
 //    printf("restart\n");
-    for(i=0;i<N;i++){
-        ans[i][0]=0;
-        for(j=0;j<N;j++)
-        {
+    for(i=0;i<N;i++)
+        for(j=0;j<MAXK;j++){
             p[i][j]=0;
+            ans[j][0]=0;
         }
-    }
     K=0;
     for(i=0;i<MAXK;i++)
     {
@@ -764,10 +764,10 @@ void restart()
     for(i=0;i<=N;i++)
         for(j=0;j<K;j++)
         {
-            p[i][backindex[j]]=0;
-            for(temp1=1;temp1<=ans[backindex[j]][0];temp1++)
+            p[i][index[j]]=0;
+            for(temp1=1;temp1<=ans[index[j]][0];temp1++)
             {
-                p[i][j]+=weight[i][ans[backindex[j]][temp1]];
+                p[i][index[j]]+=weight[i][ans[index[j]][temp1]];
             }
         }
 //    printf("part3\n");
@@ -779,7 +779,7 @@ void restart()
         heap[i][0]->pnt_add=address[i];
         for(j=0;j<K;j++)
         {
-            p_insert(i,p[i][backindex[j]],backindex[j]);
+            p_insert(i,p[i][index[j]],index[j]);
         }
     }
 //    printf("part4\n");
@@ -791,11 +791,11 @@ void restart()
 //    }
     for(i=0;i<K;i++)
     {
-        for(j=1;j<ans[backindex[i]][0];j++)
+        for(j=1;j<ans[index[i]][0];j++)
         {
-            for(temp1=j+1;temp1<=ans[backindex[i]][0];temp1++)
+            for(temp1=j+1;temp1<=ans[index[i]][0];temp1++)
             {
-                new_cost+=weight[ans[backindex[i]][j]][ans[backindex[i]][temp1]];
+                new_cost+=weight[ans[index[i]][j]][ans[index[i]][temp1]];
             }
         }
     }
@@ -806,6 +806,10 @@ void restart()
         rewritebest();
 //        printf("%d\n",best_cost);
     }
+//    for(i=0;i<K;i++) printf("%d ",index[i]);
+//    printf("\n");
+//    for(i=0;i<MAXK;i++) printf("%d ",backindex[index[i]]);
+//    printf("\n");
 //    printf("%d %d\n",new_cost,best_cost);
 //    printf("%d\n",N);
 }
@@ -901,8 +905,8 @@ int main(/*int argc, char **argv*/)
         restart();
         srand((unsigned)time(NULL));
         TabuSearch();
+//        printf("%d\n",best_cost);
         mini=0,mincost=bestcost[0];
-        printf("%d\n",best_cost);
 //找出最弱的一个个体取代
         for(i=1;i<MAXCNUM;i++)
         {
