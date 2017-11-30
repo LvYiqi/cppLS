@@ -8,7 +8,7 @@
 
 #define MAX 10010
 #define MAXK 100
-#define MAXCNUM 10
+#define MAXCNUM 5
 #define HASHNUM 131073
 #define HASHNUM2 10000000
 #define INF -99999999
@@ -20,7 +20,7 @@ using namespace std;
 
 int Tabucircle;
 int restarttime[]={1,1,2,1,1,2,4,1,1,2,4,8,1,1,2,4,8,16,1,1,2,4,8,16,32,1,1,2,4,8,16,32,64};
-const int MAXCIRCLE = 100000;
+int MAXCIRCLE = 5;
 int MAXTIME = 1000;
 float param_alpha = 0.1f;
 float param_beta = 0.4f;
@@ -39,7 +39,7 @@ int s1,s2,s3,s0,timetemp,best_time;
 //int countnum=0;
 
 int perturbnum[MAX];
-int candidatesolution[MAXCNUM][MAX],count[MAX],recode[MAX],bestcost[MAXCNUM];
+int candidatesolution[MAXCNUM][MAX],candans[MAXCNUM][MAXK],count[MAX],recode[MAX],bestcost[MAXCNUM];
 
 typedef struct pnt_heap{
     int p_weight;
@@ -617,10 +617,10 @@ void Perturb()
     {
 //        printf("%d ",movepoint[i].pointnum);
         i=j;
-        if(circle>1000)
-        {
-            i=(circle/100)%2==0?i:N-j-1;
-        }
+//        if(circle>1000)
+//        {
+//            i=(circle/100)%2==0?i:N-j-1;
+//        }
 //        perturbnum[movepoint[i].pointnum]++;
         while(1)
         {
@@ -814,6 +814,20 @@ void restart()
 //    printf("%d\n",N);
 }
 
+void growup()
+{
+    int i=0;
+    while(i<MAXCIRCLE)
+    {
+        TabuSearch();
+        perturbflag=0;
+        if(rand()%100>90) perturbflag=1;
+        Perturb();
+        i++;
+    }
+    return ;
+}
+
 int main(/*int argc, char **argv*/)
 {
     int i,mini,mincost,j,k,tempcost=0,tabuornot,perturbornot,candnow,cand1,cand2;
@@ -880,32 +894,44 @@ int main(/*int argc, char **argv*/)
     {
         InitialSolution2();
         srand((unsigned)time(NULL));
-        TabuSearch();
+        growup();
+//        TabuSearch();
         bestcost[i]=best_cost;
-        best_cost=INF;
         for(j=0;j<N;j++)
             candidatesolution[i][j]=bestaddress[j];
+        for(j=0;j<MAXK;j++)
+                candans[i][j]=ans[j][0];
+        printf("%d\n",best_cost);
+        best_cost=INF;
     }
         s2=time((time_t*)NULL);
 
     while((s2-s0)<MAXTIME)
     {
 //选择待杂交的两个个体
-        cand1=rand()%MAXCNUM;
+        cand1=0;mincost=bestcost[0];
+        for(i=1;i<MAXCNUM;i++)
+            if(bestcost[i]>mincost)
+            {
+                mincost=bestcost[i];
+                cand1=i;
+            }
         cand2=rand()%(MAXCNUM-1);
         if(cand2==cand1) cand2=MAXCNUM-1;
 //随机段杂交
         for(i=0;i<N;i++)
         {
-            if(i<param_alpha*N||i>param_beta*N) candnow=cand1;
+            if(candans[cand1][candidatesolution[cand1][i]]>candans[cand2][candidatesolution[cand2][i]]) candnow=cand1;
             else candnow=cand2;
             recode[i]=candidatesolution[candnow][i];
         }
 //新个体发育
         restart();
         srand((unsigned)time(NULL));
-        TabuSearch();
-//        printf("%d\n",best_cost);
+        MAXCIRCLE+=2;
+        growup();
+//        TabuSearch();
+        printf("%d\n",best_cost);
         mini=0,mincost=bestcost[0];
 //找出最弱的一个个体取代
         for(i=1;i<MAXCNUM;i++)
@@ -921,6 +947,8 @@ int main(/*int argc, char **argv*/)
             bestcost[mini]=best_cost;
             for(j=0;j<N;j++)
                 candidatesolution[mini][j]=bestaddress[j];
+            for(j=0;j<MAXK;j++)
+                    candans[i][j]=ans[j][0];
         }
         best_cost=INF;
 
