@@ -20,7 +20,7 @@ using namespace std;
 
 int Tabucircle;
 int restarttime[]={1,1,2,1,1,2,4,1,1,2,4,8,1,1,2,4,8,16,1,1,2,4,8,16,32,1,1,2,4,8,16,32,64};
-int MAXCIRCLE = 5;
+int MAXCIRCLE = 10;
 int MAXTIME = 1000;
 float param_alpha = 0.1f;
 float param_beta = 0.4f;
@@ -370,11 +370,11 @@ int findBestMove(int &tempt)
             desw=0;
         }
         tempinc=desw-p[i][address[i]];
-        if(tempinc+new_cost>best_temp)
-        {
-            tempt=temp;
-            return i;
-        }
+//        if(tempinc+new_cost>best_temp)
+//        {
+//            tempt=temp;
+//            return i;
+//        }
 //        if(IsTabu(i,desadd)) count++;
         if(((bestinc<tempinc)&&(IsTabu(i,desadd)==0))||(tempinc+new_cost>best_cost))
         {
@@ -516,11 +516,6 @@ void TabuSearch()
     best_temp=new_cost;
 //    for(i=0;i<HASHNUM;i++)
 //        newtabu[i]=0;
-    for(i=0;i<N;i++)
-        for(j=0;j<MAXK;j++){
-            tabu[i][j]=0;
-            tabuO[i][j]=0;
-        }
     for(i=0;i<MAXK;i++)
     {
         hashcluster[index[i]]=0;
@@ -810,13 +805,19 @@ void restart()
 //    printf("\n");
 //    for(i=0;i<MAXK;i++) printf("%d ",backindex[index[i]]);
 //    printf("\n");
-//    printf("%d %d\n",new_cost,best_cost);
+    printf("         %d %d\n",new_cost,best_cost);
 //    printf("%d\n",N);
 }
 
 void growup()
 {
-    int i=0;
+    int i,j;
+    for(i=0;i<N;i++)
+        for(j=0;j<MAXK;j++){
+            tabu[i][j]=0;
+            tabuO[i][j]=0;
+        }
+    i=0;
     while(i<MAXCIRCLE)
     {
         TabuSearch();
@@ -916,19 +917,21 @@ int main(/*int argc, char **argv*/)
                 mincost=bestcost[i];
                 cand1=i;
             }
+//        cand1=rand()%MAXCNUM;
         cand2=rand()%(MAXCNUM-1);
         if(cand2==cand1) cand2=MAXCNUM-1;
 //随机段杂交
         for(i=0;i<N;i++)
         {
             if(candans[cand1][candidatesolution[cand1][i]]>candans[cand2][candidatesolution[cand2][i]]) candnow=cand1;
+            else if(candans[cand1][candidatesolution[cand1][i]]==candans[cand2][candidatesolution[cand2][i]]&&rand()%100>50) candnow=cand1;
             else candnow=cand2;
             recode[i]=candidatesolution[candnow][i];
         }
 //新个体发育
         restart();
         srand((unsigned)time(NULL));
-        MAXCIRCLE+=2;
+        MAXCIRCLE++;
         growup();
 //        TabuSearch();
         printf("%d\n",best_cost);
